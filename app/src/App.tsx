@@ -1,8 +1,16 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import logo from "./logo.svg";
+import "./App.css";
 
 function App() {
+  function playBase64Audio(base64String: string) {
+    const audio = new Audio(`data:audio/mp3;base64,${base64String}`);
+    audio.play().catch((error) => console.error("Error playing audio:", error));
+  }
+
+  function play() {
+    playBase64Audio('the base64 string');
+  }
+
   return (
     <div className="App">
       <header className="App-header">
@@ -18,6 +26,7 @@ function App() {
         >
           Learn React
         </a>
+        <button onClick={play}>Play</button>
       </header>
     </div>
   );
