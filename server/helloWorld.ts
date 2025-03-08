@@ -5,6 +5,9 @@ import OpenAI from "openai";
 import cors from "cors";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
+import fs from 'fs';
+import path from 'path';
+import pdfParse from 'pdf-parse';
 
 dotenv.config();
 
@@ -14,6 +17,7 @@ const port = 3000;
 // Middleware to parse JSON request bodies
 app.use(express.json());
 app.use(cors());
+
 
 app.post("/generate-previews", async (req, res) => {
   try {
@@ -168,6 +172,57 @@ app.post("/text-to-speech", async (req, res) => {
   } catch (error) {
     console.error("Error converting text to speech:", error);
     res.status(500).send(`Error converting text to speech: ${error}`);
+  }
+});
+
+app.post("/chat-with-local-pdf", async (req, res) => {
+  try {
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      return res.status(500).json({ error: "OPENAI_API_KEY not found in environment variables." });
+    }
+
+    const openai = new OpenAI({ apiKey: openaiApiKey });
+
+    const pdfFilePath = path.join(__dirname, 'document.pdf'); // Path to your PDF
+
+    // Check if the file exists
+    if (!fs.existsSync(pdfFilePath)) {
+      return res.status(400).json({ error: "PDF file not found." });
+    }
+
+    let pdfText;
+    try {
+      const pdfBuffer = fs.readFileSync(pdfFilePath);
+      const pdfData = await pdfParse(pdfBuffer);
+      pdfText = pdfData.text;
+    } catch (pdfError) {
+      console.error("Error parsing PDF:", pdfError);
+      return res.status(500).json({ error: `Error parsing PDF: ${pdfError}` });
+    }
+
+    console.log("PDF Text:", pdfText);
+
+    // Create a chat completion request to OpenAI
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-2024-05-13",
+        messages: [
+          { role: "system", content: "You are an AI assistant that summarizes documents." },
+          { role: "user", content: `Summarize the following document: ${pdfText}` },
+        ],
+        max_tokens: 500,
+      });
+
+      res.json({ summary: response.choices[0].message.content });
+    } catch (openaiError) {
+      console.error("Error during OpenAI completion:", openaiError);
+      return res.status(500).json({ error: `Error during OpenAI completion: ${openaiError}` });
+    }
+
+  } catch (error) {
+    console.error("Error processing PDF:", error);
+    res.status(500).json({ error: `Error processing PDF: ${error}` });
   }
 });
 
