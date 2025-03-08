@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const port = 3000;
+const port = 3001;
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
@@ -26,14 +26,16 @@ app.post("/generate-previews", async (req, res) => {
 
     const client = new ElevenLabsClient({ apiKey: apiKey });
 
+    // const voices = await client.voices.getAll({});
+
     // Use the createPreviews endpoint
     const response = await client.textToVoice.createPreviews({
       voice_description: voiceDescription,
       text: text,
     });
 
-    console.log("Previews Response:", JSON.stringify(response, null, 2));
-    res.json(response); // Send the response back to the client
+    console.log("Previews Response:", JSON.stringify(response));
+    res.json(response);
   } catch (error) {
     console.error("Error generating previews:", error);
     res.status(500).send(`Error generating previews: ${error}`);
