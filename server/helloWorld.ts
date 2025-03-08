@@ -1,6 +1,9 @@
 import express from "express";
 import { ElevenLabsClient } from "elevenlabs";
 import dotenv from "dotenv";
+import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { z } from "zod";
 
 dotenv.config();
 
@@ -55,7 +58,11 @@ app.post("/create-voice-from-preview", async (req, res) => {
     }
 
     if (!voiceName || !voiceDescription || !generatedVoiceId) {
-      res.status(400).send("Missing voiceName, voiceDescription, or generatedVoiceId in request body.");
+      res
+        .status(400)
+        .send(
+          "Missing voiceName, voiceDescription, or generatedVoiceId in request body."
+        );
       return;
     }
 
@@ -72,6 +79,34 @@ app.post("/create-voice-from-preview", async (req, res) => {
   } catch (error) {
     console.error("Error creating voice:", error);
     res.status(500).send(`Error creating voice: ${error}`);
+  }
+});
+
+app.post("/openai-json", async (req, res) => {
+  try {
+    const openai = new OpenAI();
+
+    const NounList = z.object({
+      nouns: z.array(z.object({ value: z.string() })),
+    });
+
+    const completion = await openai.beta.chat.completions.parse({
+      model: "gpt-4o-mini-2024-07-18",
+      messages: [
+        { role: "system", content: "List the nouns in the following content" },
+        {
+          role: "user",
+          content: "Alice and Bob are going to a science fair on Friday.",
+        },
+      ],
+      response_format: zodResponseFormat(NounList, "noun_list"),
+    });
+
+    const list = completion.choices[0].message.parsed;
+    res.send(list);
+  } catch (error) {
+    console.error("Error generating response:", error);
+    res.status(500).send(`Error generating response: ${error}`);
   }
 });
 
