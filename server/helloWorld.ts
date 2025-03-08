@@ -132,6 +132,45 @@ app.post("/openai-json", async (req, res) => {
   }
 });
 
+app.post("/text-to-speech", async (req, res) => {
+  try {
+    const apiKey = process.env.ELEVEN_LABS_API_KEY;
+    const voiceId = "emOjs6yVnpSwYGjisfVV"; // Replace with the actual mouse voice ID
+    const text = req.body.text;
+    const modelId = "eleven_multilingual_v2";
+    const outputFormat = "mp3_44100_128";
+
+    if (!apiKey) {
+      res.status(500).send("API key not found in environment variables.");
+      return;
+    }
+
+    if (!text) {
+      res.status(400).send("Missing text in request body.");
+      return;
+    }
+
+    const client = new ElevenLabsClient({ apiKey: apiKey });
+
+    const audioStream = await client.textToSpeech.convert(voiceId, {
+      output_format: outputFormat,
+      text: text,
+      model_id: modelId,
+    });
+
+    // Set appropriate headers for audio streaming
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Content-Disposition", 'inline; filename="speech.mp3"');
+
+    // Pipe the audio stream directly to the response
+    audioStream.pipe(res);
+
+  } catch (error) {
+    console.error("Error converting text to speech:", error);
+    res.status(500).send(`Error converting text to speech: ${error}`);
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
