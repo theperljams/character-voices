@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const port = 3001;
+const port = 3000;
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
