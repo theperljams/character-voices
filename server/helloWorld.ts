@@ -1,27 +1,27 @@
-import express, { Request, Response } from 'express';
+import express from "express";
 import { ElevenLabsClient } from "elevenlabs";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 dotenv.config();
 
 const app = express();
-const port = 3000; // Or any other port you prefer
+const port = 3000;
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
-app.post('/generate-previews', async (req: Request, res: Response) => {
+app.post("/generate-previews", async (req, res) => {
   try {
     const apiKey = process.env.ELEVEN_LABS_API_KEY;
     const voiceDescription = req.body.voiceDescription;
     const text = req.body.text;
 
     if (!apiKey) {
-      return res.status(500).send('API key not found in environment variables.');
+      res.status(500).send("API key not found in environment variables.");
     }
 
     if (!voiceDescription || !text) {
-      return res.status(400).send('Missing voiceDescription or text in request body.');
+      res.status(400).send("Missing voiceDescription or text in request body.");
     }
 
     const client = new ElevenLabsClient({ apiKey: apiKey });
@@ -34,7 +34,6 @@ app.post('/generate-previews', async (req: Request, res: Response) => {
 
     console.log("Previews Response:", JSON.stringify(response, null, 2));
     res.json(response); // Send the response back to the client
-
   } catch (error) {
     console.error("Error generating previews:", error);
     res.status(500).send(`Error generating previews: ${error}`);
