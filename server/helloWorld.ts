@@ -7,7 +7,9 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
-import pdfParse from "pdf-parse";
+import { fileURLToPath } from "url";
+import pdf from "pdf-parse";
+import PdfParse from "pdf-parse";
 
 dotenv.config();
 
@@ -184,6 +186,8 @@ app.post("/chat-with-local-pdf", async (req, res) => {
 
     const openai = new OpenAI({ apiKey: openaiApiKey });
 
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
     const pdfFilePath = path.join(__dirname, "Yumi-Painter-Dialogue.pdf"); // Path to your PDF
 
     // Check if the file exists
@@ -194,8 +198,8 @@ app.post("/chat-with-local-pdf", async (req, res) => {
     let pdfText;
     try {
       const pdfBuffer = fs.readFileSync(pdfFilePath);
-      const pdfData = await pdfParse(pdfBuffer);
-      pdfText = pdfData.text;
+      const pdfData = await PdfParse(pdfBuffer);
+        pdfText = pdfData.text;
     } catch (pdfError) {
       console.error("Error parsing PDF:", pdfError);
       res.status(500).json({ error: `Error parsing PDF: ${pdfError}` });
