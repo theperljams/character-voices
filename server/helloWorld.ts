@@ -2,6 +2,7 @@ import express from "express";
 import { ElevenLabsClient } from "elevenlabs";
 import dotenv from "dotenv";
 import OpenAI from "openai";
+import cors from "cors";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
 
@@ -12,6 +13,7 @@ const port = 3000;
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
+app.use(cors());
 
 app.post("/generate-previews", async (req, res) => {
   try {
@@ -84,6 +86,26 @@ app.post("/create-voice-from-preview", async (req, res) => {
 
 app.post("/openai-json", async (req, res) => {
   try {
+    // res.send({
+    //   nouns: [
+    //     {
+    //       value: "Alice",
+    //     },
+    //     {
+    //       value: "Bob",
+    //     },
+    //     {
+    //       value: "science",
+    //     },
+    //     {
+    //       value: "fair",
+    //     },
+    //     {
+    //       value: "Friday",
+    //     },
+    //   ],
+    // });
+
     const openai = new OpenAI();
 
     const NounList = z.object({
