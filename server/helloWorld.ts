@@ -127,7 +127,7 @@ app.post("/openai-json", async (req, res) => {
       ],
     });
 
-    // return;
+    return;
 
     const story = req.body.story;
     const openai = new OpenAI();

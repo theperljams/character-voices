@@ -3,7 +3,7 @@ import { Card, Button, Spin, Alert, Input } from "antd";
 
 interface VoiceAssignmentProps {
   story: string;
-  onGenerate: () => void;
+  onGenerate: (voices: { [key: string]: string }) => void;
 }
 interface StoryLine {
   character: string;
@@ -32,6 +32,7 @@ const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({
   const [customNames, setCustomNames] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showVoiceInputs, setShowVoiceInputs] = useState(false);
 
   useEffect(() => {
     console.log("Fetching story data...");
@@ -58,44 +59,51 @@ const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({
   );
 
   return (
-    <Card title="Choose Voices" style={{ maxWidth: 800, margin: "auto" }}>
-      <div style={{ display: "flex", gap: "20px" }}>
-        {/* Left Column - Story */}
-        <div style={{ flex: 1 }}>
-          {parsedStory.map(({ character, text }, index) => (
-            <div key={index} style={{ marginBottom: 8 }}>
-              <strong>{character}:</strong> {text}
-            </div>
-          ))}
-        </div>
-
-        {/* Right Column - Character Settings */}
-        <div style={{ flex: 1 }}>
-          {uniqueCharacters.map((character) => (
-            <div key={character} style={{ marginBottom: 12 }}>
-              <strong>{character}</strong>
-              <Input
-                placeholder="Voice Description"
-                style={{ marginTop: 4, marginBottom: 4 }}
-                value={customNames[character] || ""}
-                onChange={(e) =>
-                  setCustomNames((prev) => ({
-                    ...prev,
-                    [character]: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          ))}
-        </div>
+    <Card title="View Story" style={{ maxWidth: 800, margin: "auto" }}>
+      {/* Story Display */}
+      <div style={{ marginBottom: 16 }}>
+        {parsedStory.map(({ character, text }, index) => (
+          <div key={index} style={{ marginBottom: 8 }}>
+            <strong>{character}:</strong> {text}
+          </div>
+        ))}
       </div>
 
+      {/* Generate Button */}
+      {showVoiceInputs && (
+        <>
+          {/* Voice Inputs */}
+          <div style={{ marginTop: 16 }}>
+            {uniqueCharacters.map((character) => (
+              <div key={character} style={{ marginBottom: 12 }}>
+                <strong>{character}</strong>
+                <Input
+                  placeholder="Voice Description"
+                  style={{ marginTop: 4 }}
+                  value={customNames[character] || ""}
+                  onChange={(e) =>
+                    setCustomNames((prev) => ({
+                      ...prev,
+                      [character]: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Final Submit Button */}
       <Button
         type="primary"
         style={{ marginTop: 16, width: "100%" }}
-        onClick={onGenerate}
+        onClick={() => {
+          setShowVoiceInputs(true);
+          onGenerate(customNames);
+        }}
       >
-        Generate
+        Submit Voices
       </Button>
     </Card>
   );
