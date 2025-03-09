@@ -1,3 +1,4 @@
+import { Button } from "antd";
 import { useState, useRef, useEffect } from "react";
 
 const AudioPlayer = ({ audioFiles }: { audioFiles: string[] }) => {
@@ -53,7 +54,13 @@ const AudioPlayer = ({ audioFiles }: { audioFiles: string[] }) => {
 
   return (
     <div className="audio-player">
-      <button onClick={playAll}>{isPlaying ? "Stop" : "Play All"}</button>
+      <Button
+        type="primary"
+        style={{ marginTop: 16, width: "100%" }}
+        onClick={playAll}
+      >
+        {isPlaying ? "Stop" : "Play All"}
+      </Button>
 
       {audioFiles.length > 0 && (
         <audio ref={audioRef} src={audioFiles[currentIndex]} preload="auto" />
