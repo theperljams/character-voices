@@ -22,6 +22,8 @@ app.use(cors());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const savedVoiceIds: string[] = []; // Array to store saved voice IDs
+
 app.post("/generate-previews", async (req, res) => {
   try {
     const apiKey = process.env.ELEVEN_LABS_API_KEY;
@@ -89,6 +91,158 @@ app.post("/create-voice-from-preview", async (req, res) => {
   } catch (error) {
     console.error("Error creating voice:", error);
     res.status(500).send(`Error creating voice: ${error}`);
+  }
+});
+
+app.post("/generate-and-create-voice", async (req, res) => {
+  try {
+    const apiKey = process.env.ELEVEN_LABS_API_KEY;
+    const voiceName = req.body.voiceName;
+    const voiceDescription = req.body.voiceDescription;
+    const text = req.body.text;
+
+    if (!apiKey) {
+      res.status(500).send("API key not found in environment variables.");
+      return;
+    }
+
+    if (!voiceName || !voiceDescription || !text) {
+      res
+        .status(400)
+        .send(
+          "Missing voiceName, voiceDescription, or text in request body."
+        );
+      return;
+    }
+
+    const client = new ElevenLabsClient({ apiKey: apiKey });
+
+    // Generate voice previews
+    const previewsResponse = await client.textToVoice.createPreviews({
+      voice_description: voiceDescription,
+      text: text,
+    });
+
+    console.log("Previews Response:", JSON.stringify(previewsResponse));
+
+    if (!previewsResponse || !previewsResponse.previews || previewsResponse.previews.length === 0 || !previewsResponse.previews[0].generated_voice_id) {
+      res
+        .status(500)
+        .send("Failed to generate voice previews or missing generated_voice_id.");
+      return;
+    }
+
+    // Create voice from preview
+    const createVoiceResponse = await client.textToVoice.createVoiceFromPreview({
+      voice_name: voiceName,
+      voice_description: voiceDescription,
+      generated_voice_id: previewsResponse.previews[0].generated_voice_id,
+    });
+
+    console.log("Create Voice Response:", JSON.stringify(createVoiceResponse));
+
+    if (!createVoiceResponse || !createVoiceResponse.voice_id) {
+      res.status(500).send("Failed to create voice or missing voice_id.");
+      return;
+    }
+
+    savedVoiceIds.push(createVoiceResponse.voice_id); // Store the voice ID
+
+    res.json({
+      message: "Voice generated and created successfully!",
+      voiceId: createVoiceResponse.voice_id,
+      savedVoiceIds: savedVoiceIds, // Return the list of saved voice IDs
+    });
+  } catch (error) {
+    console.error("Error generating and creating voice:", error);
+    res
+      .status(500)
+      .send(`Error generating and creating voice: ${error}`);
+  }
+});
+
+app.post("/edit-voice", async (req, res) => {
+  try {
+    const apiKey = process.env.ELEVEN_LABS_API_KEY;
+    const voiceId = req.body.voiceId;
+    const voiceName = req.body.voiceName;
+    const voiceDescription = req.body.voiceDescription;
+    const text = "Get on my level, noob! Seriously, are you even trying? This is a longer text to meet the minimum length requirement. We need at least 100 characters, so I'm adding more to ensure it's sufficient.";
+
+    if (!apiKey) {
+      res.status(500).send("API key not found in environment variables.");
+      return;
+    }
+
+    if (!voiceId || !voiceName || !voiceDescription) {
+      res
+        .status(400)
+        .send(
+          "Missing voiceId, voiceName, or voiceDescription in request body."
+        );
+      return;
+    }
+
+    const client = new ElevenLabsClient({ apiKey: apiKey });
+
+    // Delete the existing voice
+    try {
+      await client.voices.delete(voiceId);
+      console.log(`Voice with ID ${voiceId} deleted successfully.`);
+
+      // Remove the voice ID from the savedVoiceIds array
+      const index = savedVoiceIds.indexOf(voiceId);
+      if (index > -1) {
+        savedVoiceIds.splice(index, 1);
+      }
+    } catch (deleteError) {
+      console.error(`Error deleting voice with ID ${voiceId}:`, deleteError);
+      res
+        .status(500)
+        .send(`Error deleting voice with ID ${voiceId}: ${deleteError}`);
+      return;
+    }
+
+    // Generate voice previews
+    const previewsResponse = await client.textToVoice.createPreviews({
+      voice_description: voiceDescription,
+      text: text,
+    });
+
+    console.log("Previews Response:", JSON.stringify(previewsResponse));
+
+    if (!previewsResponse || !previewsResponse.previews || previewsResponse.previews.length === 0 || !previewsResponse.previews[0].generated_voice_id) {
+      res
+        .status(500)
+        .send("Failed to generate voice previews or missing generated_voice_id.");
+      return;
+    }
+
+    // Create voice from preview
+    const createVoiceResponse = await client.textToVoice.createVoiceFromPreview({
+      voice_name: voiceName,
+      voice_description: voiceDescription,
+      generated_voice_id: previewsResponse.previews[0].generated_voice_id,
+    });
+
+    console.log("Create Voice Response:", JSON.stringify(createVoiceResponse));
+
+    if (!createVoiceResponse || !createVoiceResponse.voice_id) {
+      res.status(500).send("Failed to create voice or missing voice_id.");
+      return;
+    }
+
+    savedVoiceIds.push(createVoiceResponse.voice_id); // Store the new voice ID
+
+    res.json({
+      message: "Voice edited successfully!",
+      oldVoiceId: voiceId,
+      newVoiceId: createVoiceResponse.voice_id,
+      savedVoiceIds: savedVoiceIds, // Return the list of saved voice IDs
+    });
+  } catch (error) {
+    console.error("Error editing voice:", error);
+    res.status(500).send(`Error editing voice: ${error}`);
   }
 });
 
