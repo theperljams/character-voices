@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card, Button, Spin, Alert, Input } from "antd";
+import AudioPlayer from "./AudioPlayer";
 
 interface VoiceAssignmentProps {
   story: string;
-  onGenerate: (voices: { [key: string]: string }) => void;
 }
 interface StoryLine {
   character: string;
@@ -24,15 +24,29 @@ const fetchStoryData = async (story: string) => {
   }
 };
 
-const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({
-  story,
-  onGenerate,
-}) => {
+const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({ story }) => {
   const [parsedStory, setParsedStory] = useState<StoryLine[]>([]);
   const [customNames, setCustomNames] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showVoiceInputs, setShowVoiceInputs] = useState(false);
+
+  async function onGenerate() {
+    console.log("Generated audio...");
+    try {
+      const response = await fetch("http://localhost:3000/text-to-speech", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lines: parsedStory }),
+      });
+      const audioData = await response.json();
+      console.log("Audio data:", audioData);
+      // return ((await response.json()) as { lines: StoryLine[] }).lines;
+    } catch (error) {
+      console.error("Error fetching story data:", error);
+      return null;
+    }
+  }
 
   useEffect(() => {
     console.log("Fetching story data...");
@@ -100,11 +114,16 @@ const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({
         style={{ marginTop: 16, width: "100%" }}
         onClick={() => {
           setShowVoiceInputs(true);
-          onGenerate(customNames);
+          onGenerate();
         }}
       >
         Submit Voices
       </Button>
+      <AudioPlayer
+        audioFiles={[0, 1, 2, 3, 4, 5, 6].map(
+          (val) => `./audio/speech_${val}.mp3`
+        )}
+      />
     </Card>
   );
 };

@@ -9,7 +9,7 @@ interface StoryInputProps {
 const StoryInput: React.FC<StoryInputProps> = ({ onStart }) => {
   const [story, setStory] = useState("");
 
-  const handleUpload = (file: File) => {
+  const handleUpload = () => {
     // const reader = new FileReader();
     // reader.onload = (e) => {
     //   if (e.target?.result) {
