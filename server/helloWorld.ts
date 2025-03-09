@@ -5,6 +5,9 @@ import OpenAI from "openai";
 import cors from "cors";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -15,6 +18,10 @@ const port = 3000;
 app.use(express.json());
 app.use(cors());
 
+// Function to get __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.post("/generate-previews", async (req, res) => {
   try {
     const apiKey = process.env.ELEVEN_LABS_API_KEY;
@@ -23,6 +30,7 @@ app.post("/generate-previews", async (req, res) => {
 
     if (!apiKey) {
       res.status(500).send("API key not found in environment variables.");
+      return;
     }
 
     if (!voiceDescription || !text) {
@@ -119,7 +127,7 @@ app.post("/openai-json", async (req, res) => {
       ],
     });
 
-    return;
+    // return;
 
     const story = req.body.story;
     const openai = new OpenAI();
@@ -190,6 +198,72 @@ app.post("/text-to-speech", async (req, res) => {
   }
 });
 
+app.post("/analyze-image", async (req, res) => {
+  try {
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      res
+        .status(500)
+        .json({ error: "OPENAI_API_KEY not found in environment variables." });
+    }
+        // Function to encode the image
+    const encodeImage = (imagePath: string) => {
+      try {
+        const imageBuffer = fs.readFileSync(imagePath);
+        const base64Image = imageBuffer.toString("base64");
+        return base64Image;
+      } catch (error) {
+        console.error("Error encoding image:", error);
+        throw new Error(`Error encoding image: ${error}`); // Re-throw to be caught by the main catch block
+      }
+    };
+
+    // Path to your image
+    const imagePath = "/home/pearlhulbert/character-voices/server/Yumi-Painter.png"; // Hardcoded path
+
+    // Check if the file exists
+    if (!fs.existsSync(imagePath)) {
+      res.status(400).json({ error: "Image file not found." });
+    }
+
+    // Getting the Base64 string
+    let base64Image: string = "";
+    try {
+      base64Image = encodeImage(imagePath);
+    } catch (encodingError: any) {
+      res.status(500).json({ error: encodingError.message });
+    }
+
+    const openai = new OpenAI();
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "What is in this image?",
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": `data:image/png;base64,${base64Image}`,
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 500,
+    });
+
+    res.json({ analysis: response.choices[0].message.content });
+  } catch (error) {
+    console.error("Error analyzing image:", error);
+    res.status(500).json({ error: `Error analyzing image: ${error}` });
+  }
+});
+
 // app.post("/chat-with-local-pdf", async (req, res) => {
 //   try {
 //     const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -198,7 +272,6 @@ app.post("/text-to-speech", async (req, res) => {
 //         .status(500)
 //         .json({ error: "OPENAI_API_KEY not found in environment variables." });
 //     }
-
 //     const openai = new OpenAI({ apiKey: openaiApiKey });
 
 //     const __filename = fileURLToPath(import.meta.url);
@@ -251,6 +324,7 @@ app.post("/text-to-speech", async (req, res) => {
 //     res.status(500).json({ error: `Error processing PDF: ${error}` });
 //   }
 // });
+
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
