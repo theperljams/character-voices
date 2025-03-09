@@ -251,19 +251,19 @@ app.post("/openai-json", async (req, res) => {
     res.send({
       lines: [
         {
-          character: "Character 1",
+          character: "Painter",
           text: "You asked if I’m a great warrior. Are you needing me to fight something, then?",
         },
         {
-          character: "Character 2",
+          character: "Yumi",
           text: "I don’t think it will require that. I don’t know, honestly. The spirits will need to be formed, and then asked. They said they’re trapped somehow; perhaps you can rescue them?",
         },
         {
-          character: "Character 1",
+          character: "Painter",
           text: "By forming them? Does this require painting?",
         },
         {
-          character: "Character 2",
+          character: "Yumi",
           text: "Painting? We call them. Through art.",
         },
         {
@@ -281,7 +281,7 @@ app.post("/openai-json", async (req, res) => {
       ],
     });
 
-    // return;
+    return;
 
     const story = req.body.story;
     const openai = new OpenAI();
@@ -309,48 +309,81 @@ app.post("/openai-json", async (req, res) => {
     console.log(list?.lines);
     res.send(list);
   } catch (error) {
-    console.error("Error generating response:", error);
-    res.status(500).send(`Error generating response: ${error}`);
+    // console.error("Error generating response:", error);
+    // res.status(500).send(`Error generating response: ${error}`);
   }
 });
 
 app.post("/text-to-speech", async (req, res) => {
   try {
     const apiKey = process.env.ELEVEN_LABS_API_KEY;
-    const voiceId = "emOjs6yVnpSwYGjisfVV"; // Replace with the actual mouse voice ID
-    const text = req.body.text;
     const modelId = "eleven_multilingual_v2";
     const outputFormat = "mp3_44100_128";
 
     if (!apiKey) {
       res.status(500).send("API key not found in environment variables.");
-      return;
     }
 
-    if (!text) {
-      res.status(400).send("Missing text in request body.");
-      return;
+    const lines = req.body.lines as { character: string; text: string }[];
+    if (!Array.isArray(lines) || lines.length === 0) {
+      res.status(400).send("Invalid or missing 'lines' in request body.");
     }
 
-    const client = new ElevenLabsClient({ apiKey: apiKey });
+    const client = new ElevenLabsClient({ apiKey });
 
-    const audioStream = await client.textToSpeech.convert(voiceId, {
-      output_format: outputFormat,
-      text: text,
-      model_id: modelId,
-    });
+    const audioUrls = [];
+    for (let i = 0; i < lines.length; i++) {
+      const { character, text } = lines[i];
+      console.log(`generating ${i + 1}/${lines.length}...`);
 
-    // Set appropriate headers for audio streaming
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.setHeader("Content-Disposition", 'inline; filename="speech.mp3"');
+      try {
+        const voiceId = getVoiceId(character); // Function to map characters to voices
+        console.log(character, voiceId);
+        const audioStream = await client.textToSpeech.convert(voiceId, {
+          output_format: outputFormat,
+          text: text,
+          model_id: modelId,
+        });
 
-    // Pipe the audio stream directly to the response
-    audioStream.pipe(res);
+        // Save the audio file
+        const fileName = `speech_${i}.mp3`;
+        const filePath = path.join(__dirname, "audio", fileName);
+        const writeStream = fs.createWriteStream(filePath);
+        await new Promise((resolve, reject) => {
+          audioStream.pipe(writeStream);
+          audioStream.on("end", resolve);
+          audioStream.on("error", reject);
+        });
+
+        audioUrls.push(`/audio/${fileName}`);
+
+        // Add delay between requests, except after the last one
+        if (i < lines.length - 1) {
+          console.log("waiting 3 seconds before next request...");
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        console.error(`Error generating speech for ${character}:`, error);
+        audioUrls.push(null);
+      }
+    }
+
+    res.json({ audioFiles: audioUrls.filter((url) => url !== null) });
   } catch (error) {
-    console.error("Error converting text to speech:", error);
-    res.status(500).send(`Error converting text to speech: ${error}`);
+    console.error("Error processing text-to-speech:", error);
+    res.status(500).send(`Error processing text-to-speech: ${error}`);
   }
 });
+
+const getVoiceId = (character: string) => {
+  const voiceMap = {
+    ["Narrator"]: "emOjs6yVnpSwYGjisfVV",
+    // ["Painter"]: "0HbOZrHk7ICE02Bhua2a",
+    ["Painter"]: "p6Y4l7AtqfjwkySVPUy6",
+    ["Yumi"]: "p6Y4l7AtqfjwkySVPUy6",
+  };
+  return (voiceMap as any)[character] || "emOjs6yVnpSwYGjisfVV";
+};
 
 app.post("/analyze-image", async (req, res) => {
   try {
@@ -360,7 +393,7 @@ app.post("/analyze-image", async (req, res) => {
         .status(500)
         .json({ error: "OPENAI_API_KEY not found in environment variables." });
     }
-        // Function to encode the image
+    // Function to encode the image
     const encodeImage = (imagePath: string) => {
       try {
         const imageBuffer = fs.readFileSync(imagePath);
@@ -373,7 +406,8 @@ app.post("/analyze-image", async (req, res) => {
     };
 
     // Path to your image
-    const imagePath = "/home/pearlhulbert/character-voices/server/Yumi-Painter.png"; // Hardcoded path
+    const imagePath =
+      "/home/pearlhulbert/character-voices/server/Yumi-Painter.png"; // Hardcoded path
 
     // Check if the file exists
     if (!fs.existsSync(imagePath)) {
@@ -393,16 +427,16 @@ app.post("/analyze-image", async (req, res) => {
       model: "gpt-4o-mini",
       messages: [
         {
-          "role": "user",
-          "content": [
+          role: "user",
+          content: [
             {
-              "type": "text",
-              "text": "What is in this image?",
+              type: "text",
+              text: "What is in this image?",
             },
             {
-              "type": "image_url",
-              "image_url": {
-                "url": `data:image/png;base64,${base64Image}`,
+              type: "image_url",
+              image_url: {
+                url: `data:image/png;base64,${base64Image}`,
               },
             },
           ],
@@ -478,7 +512,6 @@ app.post("/analyze-image", async (req, res) => {
 //     res.status(500).json({ error: `Error processing PDF: ${error}` });
 //   }
 // });
-
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
