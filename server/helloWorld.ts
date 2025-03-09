@@ -5,11 +5,6 @@ import OpenAI from "openai";
 import cors from "cors";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import pdf from "pdf-parse";
-import PdfParse from "pdf-parse";
 
 dotenv.config();
 
@@ -91,45 +86,65 @@ app.post("/create-voice-from-preview", async (req, res) => {
 
 app.post("/openai-json", async (req, res) => {
   try {
-    // res.send({
-    //   nouns: [
-    //     {
-    //       value: "Alice",
-    //     },
-    //     {
-    //       value: "Bob",
-    //     },
-    //     {
-    //       value: "science",
-    //     },
-    //     {
-    //       value: "fair",
-    //     },
-    //     {
-    //       value: "Friday",
-    //     },
-    //   ],
-    // });
+    res.send({
+      lines: [
+        {
+          character: "Character 1",
+          text: "You asked if I’m a great warrior. Are you needing me to fight something, then?",
+        },
+        {
+          character: "Character 2",
+          text: "I don’t think it will require that. I don’t know, honestly. The spirits will need to be formed, and then asked. They said they’re trapped somehow; perhaps you can rescue them?",
+        },
+        {
+          character: "Character 1",
+          text: "By forming them? Does this require painting?",
+        },
+        {
+          character: "Character 2",
+          text: "Painting? We call them. Through art.",
+        },
+        {
+          character: "Narrator",
+          text: "Through art. Right. Okay. That he could do. Maybe even something other than bamboo. Was it true—had he been summoned to an entirely different world simply to . . . to paint? He should probably make sure, he thought. He looked to the girl to explain more, but . . . She was just so hopeful. Emotions flowed inside him like blood from wounds, warm and sharp. How long had it been since he’d felt needed, wanted? He didn’t mean to lie. He wasn’t really lying, was he? Her spirits had chosen him, brought him here, perhaps to paint them.",
+        },
+        {
+          character: "Narrator",
+          text: "In that moment, he wanted so badly to be the hero someone needed. To have a chance to make up for the mistakes of his past. To become something. It wasn’t arrogance, as some of you might assume. It was more desperation.",
+        },
+        {
+          character: "Narrator",
+          text: "Deep down, Painter saw himself as a ruined canvas—the painting spoiled by spilled ink, then tossed into the trash. This was his chance to spread himself out and start a new drawing on the back. He seized that opportunity like a ravenous man at his first bowl of rice in days.",
+        },
+      ],
+    });
 
+    return;
+
+    const story = req.body.story;
     const openai = new OpenAI();
 
-    const NounList = z.object({
-      nouns: z.array(z.object({ value: z.string() })),
+    const StoryLines = z.object({
+      lines: z.array(z.object({ character: z.string(), text: z.string() })),
     });
 
     const completion = await openai.beta.chat.completions.parse({
       model: "gpt-4o-mini-2024-07-18",
       messages: [
-        { role: "system", content: "List the nouns in the following content" },
+        {
+          role: "system",
+          content: `The following content contains a story. Parse out the story to list the speakers line by line. Keep the story the exact same, but create a list of lines and which character is saying that line. If no particular character is saying that line, put the character as "Narrator". If you don't know the character's names, you may label them "Character 1, Character 2, etc. If the same character/narrator says multiple lines in a row, combine it into one item with a longer "text" section. There should never be two text items in a row with the same character.`,
+        },
         {
           role: "user",
-          content: "Alice and Bob are going to a science fair on Friday.",
+          content: story,
         },
       ],
-      response_format: zodResponseFormat(NounList, "noun_list"),
+      response_format: zodResponseFormat(StoryLines, "story_lines"),
     });
 
     const list = completion.choices[0].message.parsed;
+    console.log(list?.lines);
     res.send(list);
   } catch (error) {
     console.error("Error generating response:", error);
@@ -175,67 +190,67 @@ app.post("/text-to-speech", async (req, res) => {
   }
 });
 
-app.post("/chat-with-local-pdf", async (req, res) => {
-  try {
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
-      res
-        .status(500)
-        .json({ error: "OPENAI_API_KEY not found in environment variables." });
-    }
+// app.post("/chat-with-local-pdf", async (req, res) => {
+//   try {
+//     const openaiApiKey = process.env.OPENAI_API_KEY;
+//     if (!openaiApiKey) {
+//       res
+//         .status(500)
+//         .json({ error: "OPENAI_API_KEY not found in environment variables." });
+//     }
 
-    const openai = new OpenAI({ apiKey: openaiApiKey });
+//     const openai = new OpenAI({ apiKey: openaiApiKey });
 
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const pdfFilePath = path.join(__dirname, "Yumi-Painter-Dialogue.pdf"); // Path to your PDF
+//     const __filename = fileURLToPath(import.meta.url);
+//     const __dirname = path.dirname(__filename);
+//     const pdfFilePath = path.join(__dirname, "Yumi-Painter-Dialogue.pdf"); // Path to your PDF
 
-    // Check if the file exists
-    if (!fs.existsSync(pdfFilePath)) {
-      res.status(400).json({ error: "PDF file not found." });
-    }
+//     // Check if the file exists
+//     if (!fs.existsSync(pdfFilePath)) {
+//       res.status(400).json({ error: "PDF file not found." });
+//     }
 
-    let pdfText;
-    try {
-      const pdfBuffer = fs.readFileSync(pdfFilePath);
-      const pdfData = await PdfParse(pdfBuffer);
-        pdfText = pdfData.text;
-    } catch (pdfError) {
-      console.error("Error parsing PDF:", pdfError);
-      res.status(500).json({ error: `Error parsing PDF: ${pdfError}` });
-    }
+//     let pdfText;
+//     try {
+//       const pdfBuffer = fs.readFileSync(pdfFilePath);
+//       const pdfData = await PdfParse(pdfBuffer);
+//         pdfText = pdfData.text;
+//     } catch (pdfError) {
+//       console.error("Error parsing PDF:", pdfError);
+//       res.status(500).json({ error: `Error parsing PDF: ${pdfError}` });
+//     }
 
-    console.log("PDF Text:", pdfText);
+//     console.log("PDF Text:", pdfText);
 
-    // Create a chat completion request to OpenAI
-    try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-2024-05-13",
-        messages: [
-          {
-            role: "system",
-            content: "You are an AI assistant that summarizes documents.",
-          },
-          {
-            role: "user",
-            content: `Summarize the following document: ${pdfText}`,
-          },
-        ],
-        max_tokens: 500,
-      });
+//     // Create a chat completion request to OpenAI
+//     try {
+//       const response = await openai.chat.completions.create({
+//         model: "gpt-4o-2024-05-13",
+//         messages: [
+//           {
+//             role: "system",
+//             content: "You are an AI assistant that summarizes documents.",
+//           },
+//           {
+//             role: "user",
+//             content: `Summarize the following document: ${pdfText}`,
+//           },
+//         ],
+//         max_tokens: 500,
+//       });
 
-      res.json({ summary: response.choices[0].message.content });
-    } catch (openaiError) {
-      console.error("Error during OpenAI completion:", openaiError);
-      res
-        .status(500)
-        .json({ error: `Error during OpenAI completion: ${openaiError}` });
-    }
-  } catch (error) {
-    console.error("Error processing PDF:", error);
-    res.status(500).json({ error: `Error processing PDF: ${error}` });
-  }
-});
+//       res.json({ summary: response.choices[0].message.content });
+//     } catch (openaiError) {
+//       console.error("Error during OpenAI completion:", openaiError);
+//       res
+//         .status(500)
+//         .json({ error: `Error during OpenAI completion: ${openaiError}` });
+//     }
+//   } catch (error) {
+//     console.error("Error processing PDF:", error);
+//     res.status(500).json({ error: `Error processing PDF: ${error}` });
+//   }
+// });
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
