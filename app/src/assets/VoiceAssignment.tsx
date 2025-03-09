@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
-import { Card, Button, Select, Spin, Alert } from "antd";
+import { Card, Button, Spin, Alert, Input } from "antd";
 
 interface VoiceAssignmentProps {
   story: string;
   onGenerate: () => void;
 }
-
-const sampleVoices = ["Voice A", "Voice B", "Voice C"];
-
 interface StoryLine {
   character: string;
   text: string;
@@ -32,7 +29,7 @@ const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({
   onGenerate,
 }) => {
   const [parsedStory, setParsedStory] = useState<StoryLine[]>([]);
-  const [voiceMap, setVoiceMap] = useState<{ [key: string]: string }>({});
+  const [customNames, setCustomNames] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,12 +40,6 @@ const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({
       .then((data) => {
         if (data) {
           setParsedStory(data);
-          const uniqueCharacters = Array.from(
-            new Set(data.map((line: StoryLine) => line.character))
-          );
-          setVoiceMap(
-            Object.fromEntries(uniqueCharacters.map((char) => [char, ""]))
-          );
         } else {
           setError("Failed to load story data.");
         }
@@ -62,30 +53,43 @@ const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({
     );
   if (error) return <Alert type="error" message={error} showIcon />;
 
+  const uniqueCharacters = Array.from(
+    new Set(parsedStory.map(({ character }) => character))
+  );
+
   return (
-    <Card title="Assign Voices" style={{ maxWidth: 600, margin: "auto" }}>
-      {parsedStory.map(({ character, text }, index) => (
-        <div
-          key={index}
-          style={{ display: "flex", alignItems: "center", marginBottom: 8 }}
-        >
-          <span style={{ flex: 1 }}>
-            <strong>{character}:</strong> {text}
-          </span>
-          <Select
-            placeholder="Select voice"
-            style={{ width: 120 }}
-            onChange={(value) =>
-              setVoiceMap((prev) => ({ ...prev, [character]: value }))
-            }
-            value={voiceMap[character]}
-            options={sampleVoices.map((voice) => ({
-              label: voice,
-              value: voice,
-            }))}
-          />
+    <Card title="Choose Voices" style={{ maxWidth: 800, margin: "auto" }}>
+      <div style={{ display: "flex", gap: "20px" }}>
+        {/* Left Column - Story */}
+        <div style={{ flex: 1 }}>
+          {parsedStory.map(({ character, text }, index) => (
+            <div key={index} style={{ marginBottom: 8 }}>
+              <strong>{character}:</strong> {text}
+            </div>
+          ))}
         </div>
-      ))}
+
+        {/* Right Column - Character Settings */}
+        <div style={{ flex: 1 }}>
+          {uniqueCharacters.map((character) => (
+            <div key={character} style={{ marginBottom: 12 }}>
+              <strong>{character}</strong>
+              <Input
+                placeholder="Voice Description"
+                style={{ marginTop: 4, marginBottom: 4 }}
+                value={customNames[character] || ""}
+                onChange={(e) =>
+                  setCustomNames((prev) => ({
+                    ...prev,
+                    [character]: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
       <Button
         type="primary"
         style={{ marginTop: 16, width: "100%" }}
