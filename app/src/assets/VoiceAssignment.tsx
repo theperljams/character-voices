@@ -121,7 +121,7 @@ const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({ story }) => {
       </Button>
       <AudioPlayer
         audioFiles={[0, 1, 2, 3, 4, 5, 6].map(
-          (val) => `./audio/speech_${val}.mp3`
+          (val) => `http://localhost:5173/audio/speech_${val}.mp3`
         )}
       />
     </Card>

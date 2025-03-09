@@ -225,7 +225,7 @@ const getVoiceId = (character: string) => {
   const voiceMap = {
     ["Narrator"]: "emOjs6yVnpSwYGjisfVV",
     // ["Painter"]: "0HbOZrHk7ICE02Bhua2a",
-    ["Painter"]: "p6Y4l7AtqfjwkySVPUy6",
+    ["Painter"]: "29vD33N1CtxCmqQRPOHJ",
     ["Yumi"]: "p6Y4l7AtqfjwkySVPUy6",
   };
   return (voiceMap as any)[character] || "emOjs6yVnpSwYGjisfVV";
