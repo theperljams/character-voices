@@ -94,6 +94,8 @@ app.post("/create-voice-from-preview", async (req, res) => {
 
 app.post("/openai-json", async (req, res) => {
   try {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     res.send({
       lines: [
         {

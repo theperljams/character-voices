@@ -105,6 +105,11 @@ const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({ story }) => {
               </div>
             ))}
           </div>
+          <AudioPlayer
+            audioFiles={[0, 1, 2, 3, 4, 5, 6].map(
+              (val) => `http://localhost:5173/audio/speech_${val}.mp3`
+            )}
+          />
         </>
       )}
 
@@ -117,13 +122,8 @@ const VoiceAssignment: React.FC<VoiceAssignmentProps> = ({ story }) => {
           onGenerate();
         }}
       >
-        Submit Voices
+        Submit
       </Button>
-      <AudioPlayer
-        audioFiles={[0, 1, 2, 3, 4, 5, 6].map(
-          (val) => `http://localhost:5173/audio/speech_${val}.mp3`
-        )}
-      />
     </Card>
   );
 };

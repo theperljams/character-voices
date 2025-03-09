@@ -59,7 +59,7 @@ const AudioPlayer = ({ audioFiles }: { audioFiles: string[] }) => {
         style={{ marginTop: 16, width: "100%" }}
         onClick={playAll}
       >
-        {isPlaying ? "Stop" : "Play All"}
+        {isPlaying ? "Stop" : "Play"}
       </Button>
 
       {audioFiles.length > 0 && (
